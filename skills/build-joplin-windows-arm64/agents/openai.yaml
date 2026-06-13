@@ -1,0 +1,4 @@
+interface:
+  display_name: "Build Joplin Windows ARM64"
+  short_description: "Build native Joplin packages for Windows ARM64"
+  default_prompt: "Use $build-joplin-windows-arm64 to build and verify native Joplin desktop packages for Windows ARM64."
