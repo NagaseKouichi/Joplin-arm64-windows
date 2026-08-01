@@ -1,5 +1,7 @@
 # Joplin Windows ARM64 Build Skill
 
+<!-- cSpell:words MSVC asar -->
+
 This repository provides instructions and an AI Agent Skill for building the
 Joplin desktop application as native Windows ARM64 installer and portable
 packages.
@@ -38,10 +40,33 @@ The agent should:
 2. Confirm the host and Node.js runtime are native ARM64.
 3. Prepare Python, Visual C++ ARM64 tools, and the Windows SDK.
 4. Install dependencies and compile missing native ARM64 modules.
-5. Rebuild Electron dependencies specifically for ARM64.
-6. Create pure ARM64 installer and portable artifacts.
-7. Verify PE architectures and run an isolated-profile smoke test.
-8. Report hashes, signing state, test results, and remaining limitations.
+5. Compile and bundle sqlite-vec for Windows ARM64 only when npm does not
+   provide an official Windows ARM64 sqlite-vec binary.
+6. Rebuild Electron dependencies specifically for ARM64.
+7. Create pure ARM64 installer and portable artifacts.
+8. Verify PE architectures and run an isolated-profile smoke test.
+9. Report hashes, signing state, test results, and remaining limitations.
+
+## sqlite-vec on Windows ARM64
+
+Some Joplin builds use `sqlite-vec` for the note embeddings index used by
+semantic search. Before compiling it manually, the agent should always inspect
+the installed `sqlite-vec` package and check whether npm already provides a
+Windows ARM64 (`win32-arm64`) loadable extension.
+
+The manual sqlite-vec build is only a workaround for releases that do not ship
+that binary. For example, `sqlite-vec` 0.1.9 provides Windows x64 binaries but
+does not provide Windows ARM64 binaries on npm. In that case, build `vec0.dll`
+from the official sqlite-vec amalgamation with MSVC ARM64, verify that it is an
+`AA64` PE file and exports `sqlite3_vec_init`, then package it outside
+`app.asar` as an Electron resource such as:
+
+```text
+resources/build/sqlite-vec/vec0.dll
+```
+
+If a future `sqlite-vec` npm release provides `win32-arm64`, remove this custom
+compile and loader workaround and use the official npm package instead.
 
 The Skill intentionally tells the agent to derive current versions from the
 Joplin checkout instead of permanently relying on the versions used during the
@@ -73,8 +98,8 @@ The release contains:
 
 - Preview binaries are not code-signed. Windows may display an unknown
   publisher or SmartScreen warning.
-- `sqlite-vec` 0.1.9 does not provide a Windows ARM64 binary. AI
-  vector/semantic search is disabled.
+- Some `sqlite-vec` releases, including 0.1.9, do not provide a Windows ARM64
+  binary on npm. Use the manual build workaround only for those releases.
 - Normal keyword search, FTS, note editing, synchronisation, encryption,
   attachments, and plugins remain available.
 - The Preview build has not completed the full official Joplin release test
